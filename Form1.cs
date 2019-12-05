@@ -89,7 +89,35 @@ namespace WinFormApp
                 Utilities.Log(message);
             }
 
+            message = "Creating virtual network....";
+            this.lblCurrentStatus.Text = message;
+            Utilities.Log(message);
+            INetwork networkCreated = null;
 
+            string virtualNetworkName = this.txtBxPublicIPName.Text;
+            string addressSpace = this.txtBxAddressSpace.Text;
+            string subnetName = this.txtBxSubnetName.Text;
+            string subnetValue = this.txtBxSubnetValue.Text;
+            try
+            {
+                networkCreated = azure.Networks.Define(virtualNetworkName)
+                            .WithRegion(region)
+                        .WithExistingResourceGroup(resourceGroupName)
+                            .WithAddressSpace(addressSpace)
+                        .WithSubnet(subnetName, subnetValue)
+                        .Create();
+
+                message = String.Format("Virtual network created {0} in region {1}, address space: {2},  subnets {3} ", virtualNetworkName, networkCreated.RegionName, networkCreated.AddressSpaces, networkCreated.Subnets);
+                this.lblCurrentStatus.Text = message;
+                Utilities.Log(message);
+            }
+            catch(Exception ex)
+            {
+                message = ex.ToString();
+                this.lblCurrentStatus.Text = message;
+                Utilities.Log(message);
+            }
+            
 
 
         }
