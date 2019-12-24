@@ -112,6 +112,7 @@ namespace WinFormApp
                                     .WithExistingResourceGroup(resourceGroupName)
                                     .WithDynamicIP()
                                     .Create();
+
                 message = String.Format("Public IP address {0} has been made, Regional name :  {1}, FQDN: {2} ", publicIpAddressForVM.IPAddress, publicIpAddressForVM.RegionName, publicIpAddressForVM.Fqdn);
                 this.lblCurrentStatus.Text = message;
                 Utilities.Log(message);
@@ -217,18 +218,18 @@ namespace WinFormApp
             }
 
 
-            message = "Creating virtual machine snapshot";
+            message = "Creating virtual machine OS snapshot";
             this.lblCurrentStatus.Text = message;
             Utilities.Log(message);
             
             string snapshotName = string.Empty;
-            snapshotName = this.txtBxSnapshotName.Text;
+            snapshotName = this.txtBxOSSnapshotName.Text;
 
             try
             {
                 IDisk osDisk = azure.Disks.GetById(virtualMachineCreated.OSDiskId);
 
-                message = String.Format("Virtual machine snapshot of disk : {0}, name : {1} ", osDisk.Id, osDisk.Name);
+                message = String.Format("Virtual machine OS snapshot of disk : {0}, name : {1} ", osDisk.Id, osDisk.Name);
                 this.lblCurrentStatus.Text = message;
                 Utilities.Log(message);
 
@@ -288,86 +289,224 @@ namespace WinFormApp
 
         private void btnBlobInfoGet_Click(object sender, EventArgs e)
         {
-            BasicStorageBlockBlobOperationsAsync();
+            //BasicStorageBlockBlobOperationsAsync();
+            SnapshotListRetrieve();
         }
 
-        private async Task BasicStorageBlockBlobOperationsAsync()
+        
+
+        private void SnapshotListRetrieve()
         {
-            //const string ImageToUpload = "HelloWorld.png";
-            string containerPrefix = this.txtBxBlobContainerName.Text;
-            string containerName = containerPrefix + Guid.NewGuid();
+            var credentials = SdkContext.AzureCredentialsFactory.FromFile("servicePrincipleInformation.json");
+            IAzure azure = Microsoft.Azure.Management.Fluent.Azure
+                        .Configure()
+                        .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
+                        .Authenticate(credentials)
+                        .WithDefaultSubscription();
 
-            // Retrieve storage account information from connection string
-            CloudStorageAccount storageAccount = Common.CreateStorageAccountFromConnectionString();
+            Utilities.Log("Selected subscription: " + azure.SubscriptionId);
+            this.lblCurrentStatus.Text = "Selected subscription's ID: " + azure.SubscriptionId;
 
-            // Create a blob client for interacting with the blob service.
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+            ISnapshot snapshotFstElement = listResourceGroupSnapshot(azure);
 
-            // Create a container for organizing blobs within the storage account.
-            this.lblCurrentStatus.Text = ("1. Creating Container");
-            CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+            string infoMessage = String.Format("1st Snapshot image {0} was obtained", snapshotFstElement.Name);
+            Utilities.Log(infoMessage);
+            this.lblCurrentStatus.Text = infoMessage;
+
+            IDisk newlyCreatedDisk = null;
+            newlyCreatedDisk = createDiskFromSnapshot(snapshotFstElement, azure);
+
+            string logMessage = String.Format("New disk image : \"{0}\", OSType : \"{1}\"  from Snapshot has been made!", newlyCreatedDisk.Name, newlyCreatedDisk.OSType);
+            Utilities.Log(logMessage);
+            this.lblCurrentStatus.Text = logMessage;
+
+
+
+
+        }
+
+        private ISnapshot listResourceGroupSnapshot(IAzure azure)
+        {
+
+            string resourceGroupName = this.txtBxResourceGroupName.Text;
+            Utilities.Log("List snapshots in the resource group : " + resourceGroupName);
+            this.lblCurrentStatus.Text = "List snapshots in the resource group : " + resourceGroupName;
+
+            IEnumerable<ISnapshot> allsnapsbyrg = azure.Snapshots.ListByResourceGroup(resourceGroupName);
+            var enumerationE = allsnapsbyrg.GetEnumerator();
+            ISnapshot fstSnapshot = null ;
+            while (enumerationE.MoveNext())
+            {
+                this.txtBxSnapshotList.Text += enumerationE.Current.Name.ToString() + "\r\n";
+                string logMessage = String.Format("Snapshot retrieved and its data : {0}, OS type {1}.", enumerationE.Current.Name.ToString(), enumerationE.Current.OSType.ToString());
+                Utilities.Log(logMessage);
+                this.lblCurrentStatus.Text = logMessage;
+                fstSnapshot = enumerationE.Current;
+                break;
+            }
+            return fstSnapshot;
+            
+
+        }
+
+        private IDisk createDiskFromSnapshot(ISnapshot diskSnapshotInfo, IAzure azureContext)
+        {
+            IDisk dataDisk = null;
+            string resourceGroupName = this.txtBxResourceGroupName.Text;
+            string theSnapshotName = diskSnapshotInfo.Name.Split(new char[] {'-'})[0];
+            var region = this.cmbBxRegionData.SelectedItem as Microsoft.Azure.Management.ResourceManager.Fluent.Core.Region;
+            string logMessage = String.Format("Pure snapshot name \"{0}\" was obtained ", theSnapshotName);
+            Utilities.Log(logMessage);
+            this.lblCurrentStatus.Text = logMessage;
+
             try
             {
-                // The call below will fail if the sample is configured to use the storage emulator in the connection string, but 
-                // the emulator is not running.
-                // Change the retry policy for this call so that if it fails, it fails quickly.
-                BlobRequestOptions requestOptions = new BlobRequestOptions() { RetryPolicy = new Microsoft.Azure.Storage.RetryPolicies.NoRetry() };
-                await container.CreateIfNotExistsAsync(requestOptions, null);
+                logMessage = String.Format("New disk image from Snapshot is being made!");
+                Utilities.Log(logMessage);
+                this.lblCurrentStatus.Text = logMessage;
+                dataDisk = azureContext.Disks.Define(theSnapshotName + "-" + Guid.NewGuid())
+                                .WithRegion(region)
+                                .WithExistingResourceGroup(resourceGroupName)
+                                .WithData()
+                                .FromSnapshot(diskSnapshotInfo)
+                                .Create();
             }
-            catch (StorageException)
+            catch(Exception ex)
             {
-                this.lblCurrentStatus.Text = ("If you are running with the default connection string, please make sure you have started the storage emulator. Press the Windows key and type Azure Storage to select and run it from the list of applications - then restart the sample.");
-                Console.ReadLine();
-                throw;
-            }
-
-            // To view the uploaded blob in a browser, you have two options. The first option is to use a Shared Access Signature (SAS) token to delegate 
-            // access to the resource. See the documentation links at the top for more information on SAS. The second approach is to set permissions 
-            // to allow public access to blobs in this container. Uncomment the line below to use this approach. Then you can view the image 
-            // using: https://[InsertYourStorageAccountNameHere].blob.core.windows.net/democontainer/HelloWorld.png
-            // await container.SetPermissionsAsync(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Blob });
-
-            ////Upload a BlockBlob to the newly created container
-            //Console.WriteLine("2. Uploading BlockBlob");
-            //CloudBlockBlob blockBlob = container.GetBlockBlobReference(ImageToUpload);
-
-            ////Set the blob's content type so that the browser knows to treat it as an image.
-            //blockBlob.Properties.ContentType = "image/png";
-            //await blockBlob.UploadFromFileAsync(ImageToUpload);
-
-            // List all the blobs in the container.
-            /// Note that the ListBlobs method is called synchronously, for the purposes of the sample. However, in a real-world
-            /// application using the async/await pattern, best practices recommend using asynchronous methods consistently.
-            this.lblCurrentStatus.Text = ("3. List Blobs in Container");
-            string blobURI = string.Empty;
-            string getType = string.Empty;
-            foreach (IListBlobItem blob in container.ListBlobs())
-            {
-                // Blob type will be CloudBlockBlob, CloudPageBlob or CloudBlobDirectory
-                // Use blob.GetType() and cast to appropriate type to gain access to properties specific to each type
-                this.lblCurrentStatus.Text = (String.Format("- {0} (type: {1})", blob.Uri.ToString(), blob.GetType().ToString()));
-
+                logMessage = String.Format("Error occurred {0}", ex.ToString());
+                Utilities.Log(logMessage);
+                this.lblCurrentStatus.Text = logMessage;
             }
             
 
-            // Download a blob to your file system
-            //Console.WriteLine("4. Download Blob from {0}", blockBlob.Uri.AbsoluteUri);
-            //await blockBlob.DownloadToFileAsync(string.Format("./CopyOf{0}", ImageToUpload), FileMode.Create);
+            
+            return dataDisk;
+            
 
-            //// Create a read-only snapshot of the blob
-            //Console.WriteLine("5. Create a read-only snapshot of the blob");
-            //CloudBlockBlob blockBlobSnapshot = await blockBlob.CreateSnapshotAsync(null, null, null, null);
+        }
 
-            // Clean up after the demo. This line is not strictly necessary as the container is deleted in the next call.
-            // It is included for the purposes of the example. 
-            //Console.WriteLine("6. Delete block blob and all of its snapshots");
-            //await blockBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null);
 
-            //// Note that deleting the container also deletes any blobs in the container, and their snapshots.
-            //// In the case of the sample, we delete the blob and its snapshots, and then the container,
-            //// to show how to delete each kind of resource.
-            //Console.WriteLine("7. Delete Container");
-            //await container.DeleteIfExistsAsync();
+        //private async Task BasicStorageBlockBlobOperationsAsync()
+        //{
+        //    //const string ImageToUpload = "HelloWorld.png";
+        //    string containerPrefix = this.txtBxBlobContainerName.Text;
+        //    string containerName = containerPrefix + Guid.NewGuid();
+
+        //    // Retrieve storage account information from connection string
+        //    CloudStorageAccount storageAccount = Common.CreateStorageAccountFromConnectionString();
+
+        //    // Create a blob client for interacting with the blob service.
+        //    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+        //    // Create a container for organizing blobs within the storage account.
+        //    this.lblCurrentStatus.Text = ("1. Creating Container");
+        //    CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+        //    try
+        //    {
+        //        // The call below will fail if the sample is configured to use the storage emulator in the connection string, but 
+        //        // the emulator is not running.
+        //        // Change the retry policy for this call so that if it fails, it fails quickly.
+        //        BlobRequestOptions requestOptions = new BlobRequestOptions() { RetryPolicy = new Microsoft.Azure.Storage.RetryPolicies.NoRetry() };
+        //        await container.CreateIfNotExistsAsync(requestOptions, null);
+        //    }
+        //    catch (StorageException)
+        //    {
+        //        this.lblCurrentStatus.Text = ("If you are running with the default connection string, please make sure you have started the storage emulator. Press the Windows key and type Azure Storage to select and run it from the list of applications - then restart the sample.");
+        //        Console.ReadLine();
+        //        throw;
+        //    }
+
+        //    // To view the uploaded blob in a browser, you have two options. The first option is to use a Shared Access Signature (SAS) token to delegate 
+        //    // access to the resource. See the documentation links at the top for more information on SAS. The second approach is to set permissions 
+        //    // to allow public access to blobs in this container. Uncomment the line below to use this approach. Then you can view the image 
+        //    // using: https://[InsertYourStorageAccountNameHere].blob.core.windows.net/democontainer/HelloWorld.png
+        //    // await container.SetPermissionsAsync(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Blob });
+
+        //    ////Upload a BlockBlob to the newly created container
+        //    //Console.WriteLine("2. Uploading BlockBlob");
+        //    //CloudBlockBlob blockBlob = container.GetBlockBlobReference(ImageToUpload);
+
+        //    ////Set the blob's content type so that the browser knows to treat it as an image.
+        //    //blockBlob.Properties.ContentType = "image/png";
+        //    //await blockBlob.UploadFromFileAsync(ImageToUpload);
+
+        //    // List all the blobs in the container.
+        //    /// Note that the ListBlobs method is called synchronously, for the purposes of the sample. However, in a real-world
+        //    /// application using the async/await pattern, best practices recommend using asynchronous methods consistently.
+        //    this.lblCurrentStatus.Text = ("3. List Blobs in Container");
+        //    string blobURI = string.Empty;
+        //    string getType = string.Empty;
+        //    foreach (IListBlobItem blob in container.ListBlobs())
+        //    {
+        //        // Blob type will be CloudBlockBlob, CloudPageBlob or CloudBlobDirectory
+        //        // Use blob.GetType() and cast to appropriate type to gain access to properties specific to each type
+        //        this.lblCurrentStatus.Text = (String.Format("- {0} (type: {1})", blob.Uri.ToString(), blob.GetType().ToString()));
+
+        //    }
+            
+
+        //    // Download a blob to your file system
+        //    //Console.WriteLine("4. Download Blob from {0}", blockBlob.Uri.AbsoluteUri);
+        //    //await blockBlob.DownloadToFileAsync(string.Format("./CopyOf{0}", ImageToUpload), FileMode.Create);
+
+        //    //// Create a read-only snapshot of the blob
+        //    //Console.WriteLine("5. Create a read-only snapshot of the blob");
+        //    //CloudBlockBlob blockBlobSnapshot = await blockBlob.CreateSnapshotAsync(null, null, null, null);
+
+        //    // Clean up after the demo. This line is not strictly necessary as the container is deleted in the next call.
+        //    // It is included for the purposes of the example. 
+        //    //Console.WriteLine("6. Delete block blob and all of its snapshots");
+        //    //await blockBlob.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, null, null, null);
+
+        //    //// Note that deleting the container also deletes any blobs in the container, and their snapshots.
+        //    //// In the case of the sample, we delete the blob and its snapshots, and then the container,
+        //    //// to show how to delete each kind of resource.
+        //    //Console.WriteLine("7. Delete Container");
+        //    //await container.DeleteIfExistsAsync();
+        //}
+
+        private void btnDataSnapshotMake_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        public void VMDiskReplacement()
+        {
+            string logMessage = string.Empty;
+            var credentials = SdkContext.AzureCredentialsFactory.FromFile("servicePrincipleInformation.json");
+            var azure = Microsoft.Azure.Management.Fluent.Azure
+                    .Configure()
+                    .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
+                    .Authenticate(credentials)
+                    .WithDefaultSubscription();
+            string resourceGroupName = this.txtBxResourceGroupName.Text;
+            string vmName = this.txtBxVnetwork.Text;
+
+            IVirtualMachine vmList = azure.VirtualMachines.GetByResourceGroup(resourceGroupName, vmName);
+
+            try
+            {
+                vmList.PowerOff();
+                logMessage = String.Format("{0} VM turned off", vmList.Name);
+                Utilities.Log(logMessage);
+                this.lblCurrentStatus.Text = logMessage;
+            }
+            catch(Exception ex)
+            {
+                logMessage = String.Format("Error occurred {0}", ex.ToString());
+                Utilities.Log(logMessage);
+                this.lblCurrentStatus.Text = logMessage;
+            }
+            
+
+            List<IDisk> dataDisks = new List<IDisk>();
+            foreach(IDisk disk in vmList.DataDisks.Values)
+            {
+
+            }
+
+            Utilities.Log("Selected subscription: " + azure.SubscriptionId);
+            this.lblCurrentStatus.Text = "Selected subscription: " + azure.SubscriptionId;
         }
     }
 }

@@ -59,10 +59,13 @@
             this.label13 = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
             this.btnBlobInfoGet = new System.Windows.Forms.Button();
-            this.label15 = new System.Windows.Forms.Label();
-            this.txtBxBlobContainerName = new System.Windows.Forms.TextBox();
-            this.label16 = new System.Windows.Forms.Label();
-            this.txtBxSnapshotName = new System.Windows.Forms.TextBox();
+            this.lblOSSnapshot = new System.Windows.Forms.Label();
+            this.txtBxOSSnapshotName = new System.Windows.Forms.TextBox();
+            this.lblSnapshotListTitle = new System.Windows.Forms.Label();
+            this.txtBxSnapshotList = new System.Windows.Forms.TextBox();
+            this.btnDataSnapshotMake = new System.Windows.Forms.Button();
+            this.lblDataSnapshotName = new System.Windows.Forms.Label();
+            this.txtBxDataSnapshotName = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // button1
@@ -322,51 +325,82 @@
             this.btnBlobInfoGet.Name = "btnBlobInfoGet";
             this.btnBlobInfoGet.Size = new System.Drawing.Size(144, 23);
             this.btnBlobInfoGet.TabIndex = 31;
-            this.btnBlobInfoGet.Text = "VMBlobInfoGet";
+            this.btnBlobInfoGet.Text = "VMSnapshotList";
             this.btnBlobInfoGet.UseVisualStyleBackColor = true;
             this.btnBlobInfoGet.Click += new System.EventHandler(this.btnBlobInfoGet_Click);
             // 
-            // label15
+            // lblOSSnapshot
             // 
-            this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(446, 258);
-            this.label15.Name = "label15";
-            this.label15.Size = new System.Drawing.Size(110, 13);
-            this.label15.TabIndex = 32;
-            this.label15.Text = "Blob Container Name ";
+            this.lblOSSnapshot.AutoSize = true;
+            this.lblOSSnapshot.Location = new System.Drawing.Point(446, 228);
+            this.lblOSSnapshot.Name = "lblOSSnapshot";
+            this.lblOSSnapshot.Size = new System.Drawing.Size(101, 13);
+            this.lblOSSnapshot.TabIndex = 34;
+            this.lblOSSnapshot.Text = "OS SnapshotName ";
             // 
-            // txtBxBlobContainerName
+            // txtBxOSSnapshotName
             // 
-            this.txtBxBlobContainerName.Location = new System.Drawing.Point(567, 254);
-            this.txtBxBlobContainerName.Name = "txtBxBlobContainerName";
-            this.txtBxBlobContainerName.Size = new System.Drawing.Size(179, 20);
-            this.txtBxBlobContainerName.TabIndex = 33;
+            this.txtBxOSSnapshotName.Location = new System.Drawing.Point(567, 225);
+            this.txtBxOSSnapshotName.Name = "txtBxOSSnapshotName";
+            this.txtBxOSSnapshotName.Size = new System.Drawing.Size(179, 20);
+            this.txtBxOSSnapshotName.TabIndex = 35;
             // 
-            // label16
+            // lblSnapshotListTitle
             // 
-            this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(446, 228);
-            this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(83, 13);
-            this.label16.TabIndex = 34;
-            this.label16.Text = "SnapshotName ";
+            this.lblSnapshotListTitle.AutoSize = true;
+            this.lblSnapshotListTitle.Location = new System.Drawing.Point(810, 40);
+            this.lblSnapshotListTitle.Name = "lblSnapshotListTitle";
+            this.lblSnapshotListTitle.Size = new System.Drawing.Size(80, 13);
+            this.lblSnapshotListTitle.TabIndex = 37;
+            this.lblSnapshotListTitle.Text = "Snapshot List : ";
             // 
-            // txtBxSnapshotName
+            // txtBxSnapshotList
             // 
-            this.txtBxSnapshotName.Location = new System.Drawing.Point(567, 225);
-            this.txtBxSnapshotName.Name = "txtBxSnapshotName";
-            this.txtBxSnapshotName.Size = new System.Drawing.Size(179, 20);
-            this.txtBxSnapshotName.TabIndex = 35;
+            this.txtBxSnapshotList.Location = new System.Drawing.Point(896, 37);
+            this.txtBxSnapshotList.Multiline = true;
+            this.txtBxSnapshotList.Name = "txtBxSnapshotList";
+            this.txtBxSnapshotList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtBxSnapshotList.Size = new System.Drawing.Size(171, 74);
+            this.txtBxSnapshotList.TabIndex = 38;
+            // 
+            // btnDataSnapshotMake
+            // 
+            this.btnDataSnapshotMake.Location = new System.Drawing.Point(367, 415);
+            this.btnDataSnapshotMake.Name = "btnDataSnapshotMake";
+            this.btnDataSnapshotMake.Size = new System.Drawing.Size(129, 23);
+            this.btnDataSnapshotMake.TabIndex = 39;
+            this.btnDataSnapshotMake.Text = "Data Snapshot take";
+            this.btnDataSnapshotMake.UseVisualStyleBackColor = true;
+            this.btnDataSnapshotMake.Click += new System.EventHandler(this.btnDataSnapshotMake_Click);
+            // 
+            // lblDataSnapshotName
+            // 
+            this.lblDataSnapshotName.AutoSize = true;
+            this.lblDataSnapshotName.Location = new System.Drawing.Point(438, 258);
+            this.lblDataSnapshotName.Name = "lblDataSnapshotName";
+            this.lblDataSnapshotName.Size = new System.Drawing.Size(109, 13);
+            this.lblDataSnapshotName.TabIndex = 40;
+            this.lblDataSnapshotName.Text = "Data Snapshot Name";
+            // 
+            // txtBxDataSnapshotName
+            // 
+            this.txtBxDataSnapshotName.Location = new System.Drawing.Point(567, 255);
+            this.txtBxDataSnapshotName.Name = "txtBxDataSnapshotName";
+            this.txtBxDataSnapshotName.Size = new System.Drawing.Size(179, 20);
+            this.txtBxDataSnapshotName.TabIndex = 41;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(956, 450);
-            this.Controls.Add(this.txtBxSnapshotName);
-            this.Controls.Add(this.label16);
-            this.Controls.Add(this.txtBxBlobContainerName);
-            this.Controls.Add(this.label15);
+            this.ClientSize = new System.Drawing.Size(1153, 450);
+            this.Controls.Add(this.txtBxDataSnapshotName);
+            this.Controls.Add(this.lblDataSnapshotName);
+            this.Controls.Add(this.btnDataSnapshotMake);
+            this.Controls.Add(this.txtBxSnapshotList);
+            this.Controls.Add(this.lblSnapshotListTitle);
+            this.Controls.Add(this.txtBxOSSnapshotName);
+            this.Controls.Add(this.lblOSSnapshot);
             this.Controls.Add(this.btnBlobInfoGet);
             this.Controls.Add(this.label14);
             this.Controls.Add(this.label13);
@@ -438,10 +472,13 @@
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.Button btnBlobInfoGet;
-        private System.Windows.Forms.Label label15;
-        private System.Windows.Forms.TextBox txtBxBlobContainerName;
-        private System.Windows.Forms.Label label16;
-        private System.Windows.Forms.TextBox txtBxSnapshotName;
+        private System.Windows.Forms.Label lblOSSnapshot;
+        private System.Windows.Forms.TextBox txtBxOSSnapshotName;
+        private System.Windows.Forms.Label lblSnapshotListTitle;
+        private System.Windows.Forms.TextBox txtBxSnapshotList;
+        private System.Windows.Forms.Button btnDataSnapshotMake;
+        private System.Windows.Forms.Label lblDataSnapshotName;
+        private System.Windows.Forms.TextBox txtBxDataSnapshotName;
     }
 }
 
